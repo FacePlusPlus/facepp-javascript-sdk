@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>人体检测</title>
+    <script type="text/javascript" src="facepp_sdk/jquery.min.js"></script>
+    <script type="text/javascript" src="facepp_sdk/exif.js"></script>
+    <script type="text/javascript" src="facepp_sdk/facepp_sdk.js"></script>
+
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script type="text/javascript" src="common.js"></script>
+    <link rel="stylesheet" type="text/css" href="common.css">
+</head>
+
+<style>
+
+    #input{
+        opacity: 0;
+    }
+
+    #bodyContainer{
+        position: absolute;
+        top: 84px;
+        width: 320px;
+        height: 320px;
+        line-height: 320px;
+        left: 0;
+        right: 0;
+        background-color: darkgray;
+        text-align: center;
+        margin: 0 auto;
+    }
+
+    #preview{
+        vertical-align: middle;
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    #text{
+        left: 5%;
+        position: absolute;
+        top: 414px;
+        width: 90%;
+        height: 200px;
+    }
+
+</style>
+
+<body>
+<div class="container">
+    <div class="button" onclick=clickInput()>选择人体照片</div>
+
+    <input id="input" type="file" accept="image/*" name="xaunz" onchange="selectImage(this)"/>
+
+    <div id="bodyContainer">
+        <img id="preview" />
+    </div>
+
+    <textarea id="text" readonly="readonly"></textarea>
+</div>
+</body>
+</html>
+
+<script>
+    resetContainer();
+
+    //点击选择图片
+    function clickInput(){
+        document.getElementById('input').click();
+    }
+</script>
+
+<script>
+
+    var facepp = new FACEPP(APIKEY,APISERET,1);
+
+    /*
+
+    // 以图片URL的方式上传图片
+    let dic = {'image_url' : 'https://www.faceplusplus.com.cn/scripts/demoScript/images/demo-pic6.jpg'};
+
+    facepp.detectFace(dic,success,failed);
+
+    */
+
+    // 选择照片
+    function selectImage(input){
+
+        let imageView = document.getElementById('preview');
+
+        const reader = new FileReader();
+
+        reader.readAsDataURL(input.files[0]);
+
+        reader.onload = function (e) {
+
+            //移除之前的人体框
+            $("#bodyContainer div").remove();
+
+            //图片的base64数据
+            const base64Image = e.target.result;
+
+            //显示图片
+            //修复显示方向不对问题
+            fixOrientention(base64Image,imageView);
+
+            /*
+            //base64方式上传图片
+            let dic = {'image_base64' : base64Image};
+
+            facepp.detectFace(dic,success,failed);
+
+            */
+
+            // 以二进制的方式上传图片
+            // 将base64转为二进制
+            let imageData = facepp.dataURItoBlob(base64Image);
+            //根据业务需求填写的参数
+            let attributes = 'gender,upper_body_cloth,lower_body_cloth';
+            //上传图片,获取结果
+            let dataDic = {'image_file':imageData,'return_attributes':attributes};
+
+            //调用接口，检测人体
+            facepp.bodyDetect(dataDic,success,failed);
+        }
+    }
+
+    //成功的回调
+    function success(e){
+        //显示结果
+        console.log(e);
+        let textView = document.getElementById('text');
+        textView.innerText = JSON.stringify(e,null,"\t");
+
+        // 画上人体框,男女颜色不一样
+        let imageView = document.getElementById('preview');
+
+        const bodies = e.humanbodies;
+
+        for (const index in bodies){
+            const body = bodies[index];
+            const body_rectangle = body.humanbody_rectangle;
+
+            //人体坐标
+            var bodyX = body_rectangle.left;
+            var bodyY = body_rectangle.top;
+            var bodyW = body_rectangle.width;
+            var bodyH = body_rectangle.height;
+
+            //bodyContainer尺寸
+            var width = 320;
+            var height = 320;
+
+            //img尺寸
+            var imageW = imageView.width;
+            var imageH = imageView.height;
+
+            //图片实际尺寸
+            var naturalWidth = imageView.naturalWidth;
+            var naturalHeight = imageView.naturalHeight;
+
+            console.log('container尺寸' + width + '----' +  height);
+            console.log('img尺寸' + imageW + '----' + imageH);
+            console.log('图片实际尺寸' + naturalWidth + '----' + imageH);
+
+            const scale = imageW / naturalWidth;
+
+            console.log('scale > ' + scale);
+
+            const offsetX = (width - imageW)*0.5;
+            const offsetY = (height - imageH)*0.5;
+
+            console.log('offsetX：' + offsetX + 'offsetY' + offsetY);
+
+            //添加人体框
+            $('<div/>').css({
+                position: 'absolute',
+                top: bodyY * scale + offsetY,
+                left: bodyX * scale + offsetX,
+                height: bodyH * scale,
+                width: bodyW * scale,
+                border: '2px solid blue',
+            }).appendTo($("#bodyContainer"));
+        }
+    }
+
+    //失败的回调
+    function failed(e){
+        console.log(e);
+        let textView = document.getElementById('text');
+        textView.innerText = JSON.stringify(e);
+    }
+
+    //图片方向矫正
+    function fixOrientention(base64Image,imageView) {
+        const image = new Image();
+
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+
+            const initSize = image.src.length;
+
+            let width = image.naturalWidth;
+            let height = image.naturalHeight;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 旋转图片操作
+            EXIF.getData(image, function () {
+                const orientation = EXIF.getTag(this, 'Orientation');
+                console.log(`orientation:${orientation}`);
+                switch (orientation) {
+                    // 正常状态
+                    case 1:
+                        console.log('旋转0°');
+                        canvas.height = height;
+                        canvas.width = width;
+                        ctx.drawImage(image, 0, 0, width, height);
+                        break;
+                    // 旋转90度
+                    case 6:
+                        console.log('旋转90°');
+                        canvas.height = width;
+                        canvas.width = height;
+                        ctx.rotate(Math.PI / 2);
+                        ctx.translate(0, -height);
+                        ctx.drawImage(image, 0, 0, width, height);
+                        break;
+                    // 旋转180°
+                    case 3:
+                        console.log('旋转180°');
+                        canvas.height = height;
+                        canvas.width = width;
+                        ctx.rotate(Math.PI);
+                        ctx.translate(-width, -height);
+                        ctx.drawImage(image, 0, 0, width, height);
+                        break;
+                    // 旋转270°
+                    case 8:
+                        console.log('旋转270°');
+                        canvas.height = width;
+                        canvas.width = height;
+                        ctx.rotate(-Math.PI / 2);
+                        ctx.translate(-width, 0);
+                        ctx.drawImage(image, 0, 0, width, height);
+                        break;
+
+                    default:
+                        console.log('default 旋转0°');
+                        canvas.height = height;
+                        canvas.width = width;
+                        ctx.drawImage(image, 0, 0, width, height);
+                        break;
+                }
+            });
+
+            var newBase64 = canvas.toDataURL('image/jpeg', 1.0);
+            imageView.src = newBase64;
+        };
+        image.src = base64Image;
+    }
+
+</script>

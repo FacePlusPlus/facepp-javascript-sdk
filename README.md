@@ -1,25 +1,25 @@
 Face++ SDK for JavaScript
 =====================
 
-Example:
+* 这个Demo里面的SDK是对官网在线Api接口的封装,需要联网使用.官网接口文档地址: <https://console.faceplusplus.com.cn/documents/4888373>
+* 如何运行Demo:
+    * 在官网注册账号: <https://www.faceplusplus.com.cn/>
+    * 创建APIKey来使用: <https://console.faceplusplus.com.cn/app/apikey/create> (试用的APIKey可以免费使用,可能有并发数错误.正式APIKey需要充值后使用)
+    * 配置`common.js`文件,将生成的`APIKey`和`APISecret`写入(在第4行和第5行)
+    * 运行index.html
 
-    var api = new FacePP('YOUR_API_KEY', 'YOUR_API_SECRET');
+* 如何集成到自己的项目
+  
+  * 把`facepp_sdk`这个文件夹拖入到自己的项目
+  * 在项目中引用
 
-    api.request(method, data, callback)
-    api.requestAsync(method, data, callback)
+  ```
+    <script type="text/javascript" src="facepp_sdk/jquery.min.js"></script>
+    <script type="text/javascript" src="facepp_sdk/exif.js"></script>
+    <script type="text/javascript" src="facepp_sdk/facepp_sdk.js"></script>
 
-    method: API method (e.g. 'detection/detect')
-    data: API arguments
-    callback: function(error, result) {}
+  ``` 
+参考示例代码调用
+  
+* 如果集成中有问题,请[联系我们](https://www.faceplusplus.com.cn/contact-us/)
 
-Optional API URL configution: 
-
-    var api = new FacePP('YOUR_API_KEY',
-                         'YOUR_API_SECRET',
-                         { apiURL: 'YOUR_API_URL' });
-                         //CN API Url: http://apicn.faceplusplus.com/v2
-                         //US API Url: http://apius.faceplusplus.com/v2 
-
-Check your FacePlusPlus DevCenter for your API Key, Secret, and URL.
-
-You will need to use XMLHttpRequest 2 (HTML 5 File, Blob object.). Adding jQuery is required if you want to support older browsers.

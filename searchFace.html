@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script type="text/javascript" src="facepp_sdk/jquery.min.js"></script>
+    <script type="text/javascript" src="facepp_sdk/exif.js"></script>
+    <script type="text/javascript" src="facepp_sdk/facepp_sdk.js"></script>
+
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script type="text/javascript" src="common.js"></script>
+    <link rel="stylesheet" type="text/css" href="common.css">
+    <title>人脸搜索</title>
+</head>
+
+
+<style>
+    #input1{
+        opacity: 0;
+    }
+    #input2{
+        opacity: 0;
+    }
+
+    #preview{
+        left: 10%;
+        max-width: 80%;
+    }
+</style>
+
+<body>
+<div class="container">
+    <div class="button" id="firstButton" onclick=createFaceSet()>第一步:创建人脸集合</div>
+    <div class="button" onclick=addFace()>第二步:添加人脸到集合</div>
+    <div class="button" onclick=searchFace()>第三步:搜索一个人脸</div>
+    <!--选择照片添加到人脸库-->
+    <input id="input1" type="file" accept="image/*" onchange="selectImage1(this)"/>
+    <!--选择照片用于搜索-->
+    <input id="input2" type="file" accept="image/*" onchange="selectImage2(this)"/>
+
+    <div style="text-align: left">搜索结果:</div>
+    <img id="preview">
+</div>
+</body>
+
+</html>
+
+<script>
+    resetContainer();
+</script>
+
+<script>
+
+    var facepp = new FACEPP(APIKEY,APISERET,1);
+
+    var faceset_token; //人脸集合标识
+
+    var faceTokenMap = {}; //用于记录facetoken 和 图片的映射关系,方便通过facetoken找到原来的图片,建议这个放到自己的服务器上
+
+    //创建人脸集合
+    function createFaceSet() {
+
+        const display_name = '人脸识别'; //集合名称
+        const outer_id = 'myfaceset'; //自定义的唯一标识
+        var param = {'display_name':display_name,'outer_id':outer_id,force_merge:'1'};
+
+        facepp.faceSetCreate(null, function (e) {
+            //成功的回调
+            console.log('创建人脸集合完成');
+            faceset_token = e.faceset_token;
+            alert('创建人脸集合完成,请执行第二步');
+
+            //禁用第一个按钮
+            document.getElementById('firstButton').onclick = function () {
+
+            };
+        }, function (e) {
+            //失败的回调
+            console.log('创建人脸集合失败，请重新执行第一步');
+            alert('创建人脸集合完成,请执行第二步');
+        });
+    }
+
+    //添加人脸
+    function addFace() {
+        document.getElementById('input1').click();//选择照片
+    }
+
+    //搜索
+    function searchFace() {
+        document.getElementById('input2').click();//选择照片
+    }
+
+    // 选择照片
+    function selectImage1(input) {
+
+        const reader = new FileReader();
+
+        reader.readAsDataURL(input.files[0]);
+
+        reader.onload = function (e) {
+
+            //图片的base64数据
+            const base64Image = e.target.result;
+
+            // 以二进制的方式上传图片
+            // 将base64转为二进制
+            var image_file = facepp.dataURItoBlob(base64Image);
+
+            var msg;
+
+            //调用人脸检测接口,获取faceToken
+            facepp.detectFace({'image_file': image_file}, function (e) {
+                //检测成功
+                const faces = e.faces;
+                if (faces.length) {
+                    const face_token = faces[0].face_token;
+                    msg = '检测人脸成功,facetoken为' + face_token;
+
+                    //将face_token 添加到faceSet中
+                    facepp.faceAdd({'faceset_token': faceset_token, face_tokens: face_token}, function (e) {
+                        //成功的回调
+                        msg = '添加人脸成功';
+                        alert(msg);
+                        //保存图片,方便根据faceToken查找原来的图片
+                        faceTokenMap[face_token] = base64Image;
+                    }, function (e) {
+                        //失败的回调
+                        msg = '添加人脸失败,请重新添加';
+                        alert(msg);
+                    })
+
+                } else {
+                    msg = '没有检测到人脸,请更换图片';
+                    alert(msg);
+                }
+                console.log(msg);
+            }, function (e) {
+                //检测失败
+                const msg = '检测人脸失败,请重新选择图片';
+                console.log(msg);
+                alert(msg);
+            });
+        }
+    }
+
+    function selectImage2(input) {
+
+        const reader = new FileReader();
+
+        reader.readAsDataURL(input.files[0]);
+
+        reader.onload = function (e) {
+
+            //图片的base64数据
+            const base64Image = e.target.result;
+
+            // 以二进制的方式上传图片
+            // 将base64转为二进制
+            var image_file = facepp.dataURItoBlob(base64Image);
+
+            var msg;
+
+            var param = {'image_file': image_file, 'faceset_token': faceset_token};
+
+            //调用人脸搜索接口,搜搜人脸
+            facepp.faceSearch(param, function (e) {
+                //成功回调
+                var face = e.results[0];
+
+                //获取搜索结果的置信度
+                const confidence = face.confidence;
+                console.log('confidence' + confidence);
+                //获取阈值
+                const maxThreshold = e.thresholds["1e-5"];
+                const midThreshold = e.thresholds["1e-4"];
+                const minThreshold = e.thresholds["1e-3"];
+
+                console.log('minThreshold' + minThreshold);
+
+                //返回的是相似度最高的人脸,但不一定就是同一个人,还需要做判断: 置信度大于阈值
+                if (confidence > minThreshold) {
+
+                    const face_token = face.face_token;
+                    msg = '搜索到facetoken: ' + face_token;
+                    console.log(msg);
+
+                    //根据facetoken拿到原来的图片
+                    const base64Image = faceTokenMap[face_token];
+
+                    if (base64Image) {//在本地找到了图片
+                        var preview = document.getElementById('preview');
+                        preview.src = base64Image;
+                    }else {
+                        alert(msg);
+                    }
+                } else {
+                    msg = '没有找到相似的人脸';
+                    alert(msg);
+                }
+                console.log(msg);
+
+            }, function () {
+                //失败回调
+                msg = '搜索失败,请重新执行搜索';
+                console.log(msg);
+                alert(msg);
+            });
+        }
+    }
+
+</script>

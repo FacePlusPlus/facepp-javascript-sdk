@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>人脸比对</title>
+    <script type="text/javascript" src="facepp_sdk/jquery.min.js"></script>
+    <script type="text/javascript" src="facepp_sdk/exif.js"></script>
+    <script type="text/javascript" src="facepp_sdk/facepp_sdk.js"></script>
+
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script type="text/javascript" src="common.js"></script>
+    <link rel="stylesheet" type="text/css" href="common.css">
+</head>
+
+<style>
+
+    #leftbutton{
+        margin-left: unset;
+        margin-right: 2%;
+        width: 40%;
+        display: inline-block;
+    }
+
+    #rightbutton{
+        margin-left: 2%;
+        width: 40%;
+        display: inline-block;
+    }
+
+    #input1{
+        opacity: 0;
+    }
+
+    #input2{
+        opacity: 0;
+    }
+
+    #preview1{
+        margin-left: unset;
+        margin-right: 2%;
+        width: 40%;
+        display: inline-block;
+    }
+
+    #preview2{
+        margin-left: 2%;
+        width: 40%;
+        display: inline-block;
+    }
+
+    #result{
+        left: 10%;
+        top: 30px;
+        width: 90%;
+    }
+
+    #text{
+        left: 10%;
+        width: 90%;
+        height: 200px;
+    }
+
+</style>
+
+<body>
+<div class="container">
+    <div class="button" id="leftbutton" onclick=clickInput1()>选择照片1</div>
+    <div class="button" id="rightbutton" onclick=clickInput2()>选择照片2</div>
+
+    <input id="input1" type="file" accept="image/*" onchange="selectImage1(this)"/>
+    <input id="input2" type="file" accept="image/*" onchange="selectImage2(this)"/>
+
+    <img id="preview1" />
+    <img id="preview2" />
+
+    <div id="result"></div>
+
+    <textarea id="text" readonly="readonly"></textarea>
+</div>
+</body>
+
+<script>
+    resetContainer();
+
+    //点击按钮
+    function clickInput1(){
+        document.getElementById('input1').click();
+    }
+
+    //点击按钮
+    function clickInput2(){
+        document.getElementById('input2').click();
+    }
+
+    this.facepp = new FACEPP(APIKEY,APISERET,1);
+
+</script>
+
+
+<script>
+
+    var left_file;
+    var right_file;
+
+    // 选择照片
+    function selectImage1(input){
+        let imageView = document.getElementById('preview1');
+
+        const reader = new FileReader();
+
+        reader.readAsDataURL(input.files[0]);
+
+        reader.onload = function (e) {
+
+            //图片的base64数据
+            const base64Image = e.target.result;
+
+            imageView.src = base64Image;
+
+            // 以二进制的方式上传图片
+            // 将base64转为二进制
+            left_file = facepp.dataURItoBlob(base64Image);
+
+            startCompare();
+        }
+    }
+
+    // 选择照片
+    function selectImage2(input){
+        let imageView = document.getElementById('preview2');
+
+        const reader = new FileReader();
+
+        reader.readAsDataURL(input.files[0]);
+
+        reader.onload = function (e) {
+
+            //图片的base64数据
+            const base64Image = e.target.result;
+
+            imageView.src = base64Image;
+
+            // 以二进制的方式上传图片
+            // 将base64转为二进制
+            right_file = facepp.dataURItoBlob(base64Image);
+
+            startCompare();
+        }
+    }
+
+    function startCompare() {
+
+        if(left_file == null || right_file == null){
+            return;
+        }
+        let textView = document.getElementById('text');
+        textView.innerText = '';
+        const param = {"image_file1":left_file,"image_file2":right_file};
+        this.facepp.compareFace(param,handleSuccess,handleError);
+    }
+
+    //成功的回调
+    function handleSuccess(e) {
+        console.log(e);
+
+        const confidence = e.confidence;
+        console.log('confidence' + confidence);
+        
+        const maxthreshold = e.thresholds['1e-5'];
+        const minthreshold = e.thresholds['1e-3'];
+
+        var result = '是否是同一个人: '; //是否是一个人
+
+        if (confidence >= maxthreshold){
+            result += '可能性高';
+        } else if (confidence <= minthreshold){
+            result += '可能性低';
+        } else {
+            result += '可能性一般';
+        }
+
+        let resultView = document.getElementById('result');
+        resultView.innerText = result;
+
+        let textView = document.getElementById('text');
+        textView.innerText = JSON.stringify(e,null,"\t");;
+    }
+
+    //失败的回调
+    function handleError(e){
+        console.log(e);
+        let textView = document.getElementById('text');
+        textView.innerText = JSON.stringify(e,null,"\t");
+    }
+</script>
+</html>

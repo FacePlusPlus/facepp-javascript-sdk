@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="common.js"></script>
+    <link rel="stylesheet" type="text/css" href="common.css">
+    <title>face++代码示例</title>
+</head>
+
+
+<style>
+
+</style>
+
+<body>
+<div class="container">
+    <div class="button" onclick="navigateTo('detectFace')">人脸检测</div>
+    <div class="button" onclick="navigateTo('compareFace')">人脸比对(1:1)</div>
+    <div class="button" onclick="navigateTo('searchFace')">人脸搜索(1:N)</div>
+    <div class="button" onclick="navigateTo('beautyFace')">图片美化</div>
+    <div class="button" onclick="navigateTo('skeletonDetect')">人体关键点</div>
+    <div class="button" onclick="navigateTo('detectBody')">人体检测</div>
+    <div class="button" onclick="navigateTo('segment')">人体抠像</div>
+
+    <div class="button" onclick="navigateTo('gestureRecognize')">手势识别</div>
+    <div class="button" onclick="navigateTo('ocr_idcard')">身份证识别</div>
+    <div class="button" onclick="navigateTo('ocr_driverlicense')">驾驶证识别 </div>
+    <div class="button" onclick="navigateTo('ocr_vehiclelicense')">行驶证识别</div>
+    <div class="button" onclick="navigateTo('ocr_bankcard')">银行卡识别 </div>
+    <div class="button" onclick="navigateTo('ocr_licenseplate')">车牌号识别</div>
+    <div class="button" onclick="navigateTo('mergeFace')">人脸融合</div>
+</div>
+</body>
+
+</html>
+
+<script>
+    resetContainer();
+</script>

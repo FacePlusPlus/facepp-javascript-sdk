@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>人脸融合</title>
+    <script type="text/javascript" src="facepp_sdk/jquery.min.js"></script>
+    <script type="text/javascript" src="facepp_sdk/exif.js"></script>
+    <script type="text/javascript" src="facepp_sdk/facepp_sdk.js"></script>
+
+    <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script type="text/javascript" src="common.js"></script>
+    <link rel="stylesheet" type="text/css" href="common.css">
+</head>
+
+<style>
+
+    #leftbutton{
+        margin-left: unset;
+        margin-right: 2%;
+        width: 40%;
+        display: inline-block;
+    }
+
+    #rightbutton{
+        margin-left: 2%;
+        width: 40%;
+        display: inline-block;
+    }
+
+    #input1{
+        opacity: 0;
+    }
+
+    #input2{
+        opacity: 0;
+    }
+
+    #preview1{
+        margin-left: unset;
+        margin-right: 2%;
+        width: 40%;
+        display: inline-block;
+    }
+
+    #preview2{
+        margin-left: 2%;
+        width: 40%;
+        display: inline-block;
+    }
+
+    #resultImage{
+        margin-top: 30px;
+        left: 5%;
+        max-width: 80%;
+    }
+
+    #text{
+        left: 10%;
+        top: 20px;
+        width: 90%;
+    }
+
+
+</style>
+
+<body>
+<div class="container">
+    <div class="button" id="leftbutton" onclick=clickInput1()>选择待融合照片</div>
+    <div class="button" id="rightbutton" onclick=clickInput2()>选择模板照片</div>
+
+    <input id="input1" type="file" accept="image/*" onchange="selectImage1(this)"/>
+    <input id="input2" type="file" accept="image/*" onchange="selectImage2(this)"/>
+
+    <img id="preview1" />
+    <img id="preview2" />
+
+    <img id="resultImage" />
+
+    <div id="text"></div>
+</div>
+</body>
+
+<script>
+    resetContainer();
+
+    //点击按钮
+    function clickInput1(){
+        document.getElementById('input1').click();
+    }
+
+    //点击按钮
+    function clickInput2(){
+        document.getElementById('input2').click();
+    }
+
+    this.facepp = new FACEPP(APIKEY,APISERET,1);
+
+</script>
+
+
+<script>
+
+    var merge_file;
+    var template_file;
+
+    // 选择照片
+    function selectImage1(input){
+        let imageView = document.getElementById('preview1');
+
+        const reader = new FileReader();
+
+        reader.readAsDataURL(input.files[0]);
+
+        reader.onload = function (e) {
+
+            //图片的base64数据
+            const base64Image = e.target.result;
+
+            imageView.src = base64Image;
+
+            // 以二进制的方式上传图片
+            // 将base64转为二进制
+            merge_file = facepp.dataURItoBlob(base64Image);
+
+            startMerge();
+        }
+    }
+
+    // 选择照片
+    function selectImage2(input){
+        let imageView = document.getElementById('preview2');
+
+        const reader = new FileReader();
+
+        reader.readAsDataURL(input.files[0]);
+
+        reader.onload = function (e) {
+
+            //图片的base64数据
+            const base64Image = e.target.result;
+
+            imageView.src = base64Image;
+
+            // 以二进制的方式上传图片
+            // 将base64转为二进制
+            template_file = facepp.dataURItoBlob(base64Image);
+
+            startMerge();
+        }
+    }
+
+
+    function startMerge() {
+
+        if(merge_file == null || template_file == null){
+            return;
+        }
+
+        var that = this;
+
+        const detectPara = {"image_file" : template_file}
+        this.facepp.detectFace(detectPara,function (res) {
+            //获取模板图人脸框的位置
+            const face_rectangle = res.faces[0].face_rectangle;
+
+            var faceY = face_rectangle.top;
+            var faceX = face_rectangle.left;
+            var faceW = face_rectangle.width;
+            var faceH = face_rectangle.height;
+
+            const rectangle =  faceY + "," + faceX + "," + faceW + "," + faceH;//按照格式,用','隔开
+
+
+            console.log(rectangle);
+
+            const mergePara = {"template_file": template_file,"template_rectangle" : rectangle,"merge_file" : merge_file};
+
+            that.facepp.mergeFace(mergePara,handleSuccess,handleError);
+
+
+        },handleError)
+    }
+
+
+
+    //成功的回调
+    function handleSuccess(e) {
+        console.log(e);
+
+        const base64Image  = 'data:image/jpg;base64,' + e.result;
+
+        var resultImage = document.getElementById('resultImage');
+
+        resultImage.src = base64Image;
+
+        let textView = document.getElementById('text');
+        textView.innerText = '';
+    }
+
+    //失败的回调
+    function handleError(e){
+        console.log(e);
+        let textView = document.getElementById('text');
+        textView.innerText = JSON.stringify(e,null,"\t");
+    }
+</script>
+</html>

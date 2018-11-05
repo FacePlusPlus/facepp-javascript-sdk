@@ -1,0 +1,29 @@
+
+body{
+    background-color: lightgray;
+}
+
+.container{
+    position: relative;
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+    background-color: white;
+}
+
+.button{
+    position: relative;
+    top: 10px;
+    font-size: 16px;
+    width: 90%;
+    height: 34px;
+    line-height: 34px;
+    display: block;
+    margin-left: 5%;
+    text-align: center;
+    border-style: solid;
+    border-color: white;
+    border-width: 5px;
+    background-color: cornflowerblue;
+}
+
